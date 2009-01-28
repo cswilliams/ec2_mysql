@@ -147,10 +147,12 @@ class Ec2Mysql
     end
     
     def slave
-      raise "You must supply -v,--volume-id to bootstrap the slave from" unless @volume_id
-      raise "You must supply -h,--mysql-host to configure the master" unless @mysql_host
-      raise "You must supply -U,--mysql-rep-username to configure the master" unless @mysql_rep_username
-      raise "You must supply -P,--mysql-rep-password to configure the master" unless @mysql_rep_password
+      if @mysql_start_replication
+        raise "You must supply -v,--volume-id to bootstrap the slave from" unless @volume_id
+        raise "You must supply -h,--mysql-host to configure the master" unless @mysql_host
+        raise "You must supply -U,--mysql-rep-username to configure the master" unless @mysql_rep_username
+        raise "You must supply -P,--mysql-rep-password to configure the master" unless @mysql_rep_password
+      end
       
       @ec2.get_instance_id
       @ec2.get_availability_zone
