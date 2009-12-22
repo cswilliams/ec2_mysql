@@ -6,9 +6,9 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,11 +24,11 @@ require File.join(File.dirname(__FILE__), "log")
 
 class Ec2Mysql
   class Command
-    
-    attr_accessor :aws_access_key, :aws_secret_key, :mysql_username, 
+
+    attr_accessor :aws_access_key, :aws_secret_key, :mysql_username,
                   :mysql_password, :mysql_host, :instance_id, :volume_id,
                   :to_keep, :log_level
-    
+
     def initialize(args)
       @aws_access_key = nil
       @aws_secret_key = nil
@@ -46,7 +46,7 @@ class Ec2Mysql
       @mount_point = "/mnt/mysql"
       @mysql_start = "/etc/init.d/mysql start"
       @log_level = :info
-      
+
       opts = OptionParser.new do |opts|
         opts.banner = "Usage: #{$0} (options) [master|slave]"
         opts.on("-a AWS_ACCESS_KEY", "--aws-access-key AWS_ACCESS_KEY", "Your AWS Access Key") do |a|
@@ -104,33 +104,35 @@ class Ec2Mysql
       end
       action = opts.parse!(args)
       Ec2Mysql::Log.level(@log_level)
-      
+
       unless action.length == 1
-        puts "You must supply an action (only one!): master or slave" 
+        puts "You must supply an action (only one!): master, slave or start_replication "
         puts opts
         exit 100
       end
-      
+
       @action = action[0]
-      
-      unless @action == "master" || @action == "slave"
-        puts "You must supply master or slave - you supplied #{@action}"
+
+      unless @action == "master" || @action == "slave" || @action == "start_replication"
+        puts "You must supply master, slave or start_replication - you supplied #{@action}"
         puts opts
         exit 100
       end
 
       @ec2 = Ec2Mysql::EC2.new(@aws_access_key, @aws_secret_key, @instance_id, @volume_id)
     end
-    
+
     def run
       case @action
       when "master"
         self.master
       when "slave"
         self.slave
+      when "start_replication"
+        self.start_replication
       end
     end
-    
+
     def master
       @ec2.get_instance_id
       @ec2.find_volume_id
@@ -145,7 +147,7 @@ class Ec2Mysql
       @db.unlock_tables
       @db.disconnect
     end
-    
+
     def slave
       raise "You must supply -v,--volume-id to bootstrap the slave from" unless @volume_id
       if @mysql_start_replication
@@ -153,7 +155,7 @@ class Ec2Mysql
         raise "You must supply -U,--mysql-rep-username to configure the master" unless @mysql_rep_username
         raise "You must supply -P,--mysql-rep-password to configure the master" unless @mysql_rep_password
       end
-      
+
       @ec2.get_instance_id
       @ec2.get_availability_zone
       @ec2.get_volume_size
@@ -163,17 +165,20 @@ class Ec2Mysql
       system("mount #{@kernel_device} #{@mount_point}")
       system(@mysql_start)
       if @mysql_start_replication
-        json_file = File.open(File.join(@mount_point, "master_status.json"))
-        master_status = JSON.load(json_file)
-        json_file.close
-        master_status["master_host"] = @mysql_host
-        master_status["master_user"] = @mysql_rep_username
-        master_status["master_password"] = @mysql_rep_password
-        @db = Ec2Mysql::DB.new(@mysql_username, @mysql_password, @mysql_host)
-        @db.change_master(master_status)
-        @db.slave_start
+        start_replication
       end
     end
-    
+
+    def start_replication
+      json_file = File.open(File.join(@mount_point, "master_status.json"))
+      master_status = JSON.load(json_file)
+      json_file.close
+      master_status["master_host"] = @mysql_host
+      master_status["master_user"] = @mysql_rep_username
+      master_status["master_password"] = @mysql_rep_password
+      @db = Ec2Mysql::DB.new(@mysql_username, @mysql_password, @mysql_host)
+      @db.change_master(master_status)
+      @db.slave_start
+    end
   end
 end
