@@ -150,11 +150,6 @@ class Ec2Mysql
 
     def slave
       raise "You must supply -v,--volume-id to bootstrap the slave from" unless @volume_id
-      if @mysql_start_replication
-        raise "You must supply -h,--mysql-host to configure the master" unless @mysql_host
-        raise "You must supply -U,--mysql-rep-username to configure the master" unless @mysql_rep_username
-        raise "You must supply -P,--mysql-rep-password to configure the master" unless @mysql_rep_password
-      end
 
       @ec2.get_instance_id
       @ec2.get_availability_zone
@@ -170,6 +165,12 @@ class Ec2Mysql
     end
 
     def start_replication
+      if @mysql_start_replication
+        raise "You must supply -h,--mysql-host to configure the master" unless @mysql_host
+        raise "You must supply -U,--mysql-rep-username to configure the master" unless @mysql_rep_username
+        raise "You must supply -P,--mysql-rep-password to configure the master" unless @mysql_rep_password
+      end
+
       json_file = File.open(File.join(@mount_point, "master_status.json"))
       master_status = JSON.load(json_file)
       json_file.close
