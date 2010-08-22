@@ -23,7 +23,7 @@ require File.join(File.dirname(__FILE__), 'log')
 class Ec2Mysql
   class EC2
     
-    attr_accessor :ec2, :instance_id, :volume_id, :availability_zone
+    attr_accessor :ec2, :instance_id, :volume_id, :availability_zone, :region
     
     def initialize(aws_access_key, aws_secret_key, instance_id=nil, volume_id=nil)
       @aws_access_key = aws_access_key
@@ -31,8 +31,9 @@ class Ec2Mysql
       @instance_id = instance_id
       @volume_id = volume_id
       @availability_zone = nil
+      @region = get_region
       Ec2Mysql::Log.debug("Connecting to EC2")
-      @ec2 = RightAws::Ec2.new(aws_access_key, aws_secret_key, { :logger => Ec2Mysql::Log })
+      @ec2 = RightAws::Ec2.new(aws_access_key, aws_secret_key, { :logger => Ec2Mysql::Log, :region => @region })
     end
     
     def get_instance_id
@@ -55,6 +56,15 @@ class Ec2Mysql
       raise "Cannot find availability zone!" unless @availability_zone
       Ec2Mysql::Log.debug("Availability zone is #{@availability_zone}")
       @availability_zone
+    end
+    
+    def get_region
+      return @region if @region
+      
+      @region = get_availability_zone.chop
+      raise "Cannot find Region!" unless @region
+      Ec2Mysql::Log.debug("Region is #{@region}")
+      @region
     end
     
     def find_volume_id
