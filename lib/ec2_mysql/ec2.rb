@@ -20,6 +20,10 @@ require 'right_aws'
 require 'open-uri'
 require File.join(File.dirname(__FILE__), 'log')
 
+#This removes the "warning: peer certificate won't be verified in this SSL session" message
+require 'right_http_connection'  
+Rightscale::HttpConnection.params[:ca_file] = "/etc/ssl/certs/ca-certificates.crt"
+
 class Ec2Mysql
   class EC2
     
@@ -32,6 +36,7 @@ class Ec2Mysql
       @volume_id = volume_id
       @availability_zone = nil
       @region = get_region
+      Ec2Mysql::Log.level(:error)
       Ec2Mysql::Log.debug("Connecting to EC2")
       @ec2 = RightAws::Ec2.new(aws_access_key, aws_secret_key, { :logger => Ec2Mysql::Log, :region => @region })
     end
