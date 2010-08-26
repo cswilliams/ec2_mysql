@@ -36,7 +36,6 @@ class Ec2Mysql
       @volume_id = volume_id
       @availability_zone = nil
       @region = get_region
-      Ec2Mysql::Log.level(:error)
       Ec2Mysql::Log.debug("Connecting to EC2")
       @ec2 = RightAws::Ec2.new(aws_access_key, aws_secret_key, { :logger => Ec2Mysql::Log, :region => @region })
     end
