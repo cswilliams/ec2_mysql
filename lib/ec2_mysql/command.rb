@@ -45,7 +45,7 @@ class Ec2Mysql
       @kernel_device = "/dev/sdh"
       @mount_point = "/mnt/mysql"
       @mysql_start = "/etc/init.d/mysql start"
-      @log_level = :error
+      @log_level = :info
 
       opts = OptionParser.new do |opts|
         opts.banner = "Usage: #{$0} (options) [master|slave]"
